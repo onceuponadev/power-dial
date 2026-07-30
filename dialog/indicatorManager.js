@@ -90,11 +90,11 @@ export class IndicatorManager {
 	}
 
 	destroy() {
-		this._destroyIndicator();
-
 		if (this._settingsConnectionId) {
 			this._settings.disconnect(this._settingsConnectionId);
 			this._settingsConnectionId = null;
 		}
+
+		this._destroyIndicator();
 	}
 }

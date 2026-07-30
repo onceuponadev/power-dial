@@ -69,7 +69,7 @@ export class DialogManager {
 			this._tiles.length > 0
 		) {
 			if (this._focusTimeoutId) {
-				GLib.source_remove(this._focusTimeoutId);
+				GLib.Source.remove(this._focusTimeoutId);
 				this._focusTimeoutId = null;
 			}
 			this._focusTimeoutId = GLib.timeout_add(
@@ -494,15 +494,15 @@ export class DialogManager {
 	}
 
 	destroy() {
+		if (this._focusTimeoutId) {
+			GLib.Source.remove(this._focusTimeoutId);
+			this._focusTimeoutId = null;
+		}
+
 		if (this._dialog) {
 			this._dialog.close();
 			this._dialog = null;
 			this._isDialogOpen = false;
-		}
-
-		if (this._focusTimeoutId) {
-			GLib.source_remove(this._focusTimeoutId);
-			this._focusTimeoutId = null;
 		}
 	}
 

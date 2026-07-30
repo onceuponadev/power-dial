@@ -45,3 +45,5 @@ venv/
 .env
 
 prepare
+deploy.sh
+dist/

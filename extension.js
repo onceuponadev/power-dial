@@ -5,19 +5,8 @@ import { DialogManager } from "./dialog/dialogManager.js";
 import { IndicatorManager } from "./dialog/indicatorManager.js";
 
 export default class PowerDialExtension extends Extension {
-	constructor(metadata) {
-		super(metadata);
-		this._settings = null;
-		this._powerActions = null;
-		this._keybindingManager = null;
-		this._dialogManager = null;
-		this._indicatorManager = null;
-	}
-
-	// Underscore is our module convention for internal methods (not a GNOME
-	// Shell private API). DialogManager uses the same naming for its entry point.
 	_showPowerMenu() {
-		this._dialogManager?._showPowerMenu();
+		this._dialogManager._showPowerMenu();
 	}
 
 	enable() {
