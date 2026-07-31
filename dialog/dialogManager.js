@@ -42,6 +42,10 @@ export class DialogManager {
 			styleClass: "power-dial-dialog",
 		});
 
+		const viewMode = this._settings.get_string("view-mode");
+		if (viewMode === "pill")
+			dialog.add_style_class_name("pill-mode");
+
 		this._dialog = dialog;
 		this._isDialogOpen = true;
 
@@ -95,6 +99,13 @@ export class DialogManager {
 			},
 		]);
 
+		if (viewMode === "pill") {
+			const buttonBox = dialog.buttonLayout;
+			const cancelButton = buttonBox.get_first_child();
+			if (cancelButton)
+				cancelButton.add_style_class_name("pill-cancel");
+		}
+
 		dialog.connect("closed", () => {
 			this._dialog = null;
 			this._isDialogOpen = false;
@@ -122,6 +133,9 @@ export class DialogManager {
 		switch (viewMode) {
 			case "tiled":
 				this._renderTiledView(box);
+				break;
+			case "pill":
+				this._renderPillView(box);
 				break;
 			case "stacked":
 			default:
@@ -219,6 +233,94 @@ export class DialogManager {
 				"logout-button"
 			)
 		);
+	}
+
+	_renderPillView(box) {
+		const createPill = (labelText, iconName, action) => {
+			const button = new St.Button({
+				style_class: "pill-button",
+				can_focus: true,
+				x_expand: true,
+			});
+
+			const pillBox = new St.BoxLayout({
+				x_expand: true,
+				y_align: Clutter.ActorAlign.CENTER,
+			});
+
+			const iconContainer = new St.BoxLayout({
+				style_class: "pill-icon-container",
+				x_align: Clutter.ActorAlign.CENTER,
+				y_align: Clutter.ActorAlign.CENTER,
+			});
+			const icon = new St.Icon({
+				icon_name: iconName,
+				icon_size: 18,
+				x_align: Clutter.ActorAlign.CENTER,
+				y_align: Clutter.ActorAlign.CENTER,
+				x_expand: true,
+				y_expand: true,
+				style_class: "pill-icon",
+			});
+			iconContainer.add_child(icon);
+			pillBox.add_child(iconContainer);
+
+			const label = new St.Label({
+				text: labelText,
+				y_align: Clutter.ActorAlign.CENTER,
+				x_expand: true,
+				style_class: "pill-label",
+			});
+			pillBox.add_child(label);
+
+			button.set_child(pillBox);
+			button.connect("clicked", () => {
+				action();
+				this._dialog?.close();
+			});
+			return button;
+		};
+
+		const gridContainer = new St.BoxLayout({
+			...VERTICAL_BOX_PROPS,
+			style: "spacing: 8px;",
+			x_expand: true,
+			can_focus: false,
+		});
+
+		const firstRow = new St.BoxLayout({
+			style: "spacing: 8px;",
+			x_expand: true,
+			can_focus: false,
+		});
+
+		const secondRow = new St.BoxLayout({
+			style: "spacing: 8px;",
+			x_expand: true,
+			can_focus: false,
+		});
+
+		firstRow.add_child(
+			createPill("Suspend", this._iconMap["Suspend"],
+				this._powerActions.suspend.bind(this._powerActions))
+		);
+		firstRow.add_child(
+			createPill("Restart", this._iconMap["Restart"],
+				this._powerActions.reboot.bind(this._powerActions))
+		);
+
+		secondRow.add_child(
+			createPill("Power Off", this._iconMap["Power Off"],
+				this._powerActions.powerOff.bind(this._powerActions))
+		);
+		secondRow.add_child(
+			createPill("Log Out", this._iconMap["Log Out"],
+				this._powerActions.logout.bind(this._powerActions))
+		);
+
+		gridContainer.add_child(firstRow);
+		gridContainer.add_child(secondRow);
+		box.add_child(gridContainer);
 	}
 
 	_renderTiledView(box) {
@@ -364,7 +466,7 @@ export class DialogManager {
 
 		const gridContainer = new St.BoxLayout({
 			...VERTICAL_BOX_PROPS,
-			style: "spacing: 8px; margin-top: 10px;",
+			style: "spacing: 8px;",
 			x_expand: true,
 			can_focus: false,
 		});

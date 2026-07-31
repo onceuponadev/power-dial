@@ -9,7 +9,7 @@
     <key name="view-mode" type="s">
       <default>'stacked'</default>
       <summary>Layout mode for the power dial menu</summary>
-      <description>How to display the power options. Options: 'stacked' (vertical list) or 'tiled' (2x2 grid).</description>
+      <description>How to display the power options. Options: 'stacked' (vertical list), 'tiled' (2x2 grid), or 'pill' (pill-shaped buttons).</description>
     </key>
     <key name="show-top-bar-icon" type="b">
       <default>true</default>

@@ -16,6 +16,7 @@ export class DisplaySettings {
 		const viewModeModel = new Gtk.StringList();
 		viewModeModel.append("Stacked");
 		viewModeModel.append("Tiled");
+		viewModeModel.append("Pill");
 		viewModeRow.set_model(viewModeModel);
 
 		const currentViewMode = this._settings.get_string("view-mode");
@@ -23,11 +24,20 @@ export class DisplaySettings {
 			viewModeRow.set_selected(0);
 		} else if (currentViewMode === "tiled") {
 			viewModeRow.set_selected(1);
+		} else if (currentViewMode === "pill") {
+			viewModeRow.set_selected(2);
 		}
 
 		viewModeRow.connect("notify::selected", () => {
 			const selectedIndex = viewModeRow.get_selected();
-			const selectedMode = selectedIndex === 0 ? "stacked" : "tiled";
+			let selectedMode;
+			if (selectedIndex === 0) {
+				selectedMode = "stacked";
+			} else if (selectedIndex === 1) {
+				selectedMode = "tiled";
+			} else if (selectedIndex === 2) {
+				selectedMode = "pill";
+			}
 			this._settings.set_string("view-mode", selectedMode);
 		});
 
@@ -95,7 +105,7 @@ export class DisplaySettings {
 	createDialogModeRow(displayGroup) {
 		const dialogModeRow = new Adw.ComboRow({
 			title: "Dialog Mode",
-			subtitle: "How the power menu appears",
+			subtitle: "How the menu opens when clicking the top bar icon",
 		});
 		displayGroup.add(dialogModeRow);
 

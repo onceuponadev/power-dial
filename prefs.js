@@ -56,10 +56,10 @@ export default class PowerDialPreferences extends ExtensionPreferences {
 			shortcutSettings.updateShortcutDisplay(shortcutButton);
 		});
 
+		displaySettings.createTopBarIconRow(displayGroup);
 		displaySettings.createDialogModeRow(displayGroup);
 		displaySettings.createViewModeRow(displayGroup);
 		displaySettings.createTiledDisplayModeRow(displayGroup);
-		displaySettings.createTopBarIconRow(displayGroup);
 
 		powerOptions.createRestartConfirmationRow(powerGroup);
 		powerOptions.createPowerOffConfirmationRow(powerGroup);
