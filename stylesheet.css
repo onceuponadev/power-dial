@@ -154,8 +154,23 @@
 	width: 160px;
 }
 
+.power-option-icon-container-tile-full {
+	background-color: rgba(255, 255, 255, 0.1);
+	border-radius: 12px 12px 2px 2px;
+	width: 296px;
+}
+
 .power-option-icon {
 	color: inherit;
+}
+
+.logout-tile-full {
+	width: 100%;
+}
+
+.pill-button-full .pill-label {
+	margin-left: 0;
+	margin-right: 46px;
 }
 
 /* Pill View */

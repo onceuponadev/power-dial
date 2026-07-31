@@ -84,4 +84,23 @@ export class PowerActions {
 	suspend() {
 		this._callLogind("Suspend", true);
 	}
+
+	lock() {
+		Gio.DBus.session.call(
+			"org.gnome.ScreenSaver",
+			"/org/gnome/ScreenSaver",
+			"org.gnome.ScreenSaver",
+			"Lock",
+			null,
+			null,
+			Gio.DBusCallFlags.NONE,
+			-1,
+			null,
+			null
+		);
+	}
+
+	hibernate() {
+		this._callLogind("Hibernate", true);
+	}
 }

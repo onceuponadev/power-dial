@@ -64,5 +64,6 @@ export default class PowerDialPreferences extends ExtensionPreferences {
 		powerOptions.createRestartConfirmationRow(powerGroup);
 		powerOptions.createPowerOffConfirmationRow(powerGroup);
 		powerOptions.createLogoutConfirmationRow(powerGroup);
+		powerOptions.createHibernateRow(powerGroup);
 	}
 }

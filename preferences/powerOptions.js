@@ -89,5 +89,25 @@ export class PowerOptions {
 
 		return logoutRow;
 	}
+
+	createHibernateRow(powerGroup) {
+		const hibernateRow = new Adw.ActionRow({
+			title: "Enable Hibernate",
+			subtitle: "Show hibernate option (only if your system supports it)",
+		});
+		powerGroup.add(hibernateRow);
+
+		const hibernateToggle = new Gtk.Switch({
+			active: this._settings.get_boolean("enable-hibernate"),
+			valign: Gtk.Align.CENTER,
+		});
+		hibernateRow.add_suffix(hibernateToggle);
+
+		hibernateToggle.connect("notify::active", () => {
+			this._settings.set_boolean("enable-hibernate", hibernateToggle.get_active());
+		});
+
+		return hibernateRow;
+	}
 }
 

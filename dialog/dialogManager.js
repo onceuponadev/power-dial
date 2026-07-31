@@ -23,10 +23,19 @@ export class DialogManager {
 
 	_iconMap = {
 		"Suspend": "media-playback-pause-symbolic",
+		"Lock": "system-lock-screen-symbolic",
 		"Restart": "system-reboot-symbolic",
 		"Power Off": "system-shutdown-symbolic",
+		"Hibernate": "dialog-error-symbolic",
 		"Log Out": "system-log-out-symbolic",
 	};
+
+	_rotateIcon(icon, labelText) {
+		if (labelText === "Hibernate") {
+			icon.set_pivot_point(0.5, 0.5);
+			icon.rotation_angle_z = 90;
+		}
+	}
 
 	_showPowerMenu() {
 		// Toggle closed if already open
@@ -187,6 +196,7 @@ export class DialogManager {
 				y_expand: true,
 				style_class: "power-option-icon",
 			});
+			this._rotateIcon(icon, labelText);
 			iconContainer.add_child(icon);
 
 			button.set_child(buttonBox);
@@ -211,6 +221,14 @@ export class DialogManager {
 		);
 		box.add_child(
 			createButton(
+				"Lock",
+				this._iconMap["Lock"],
+				this._powerActions.lock.bind(this._powerActions),
+				"lock-button"
+			)
+		);
+		box.add_child(
+			createButton(
 				"Restart",
 				this._iconMap["Restart"],
 				this._powerActions.reboot.bind(this._powerActions),
@@ -225,6 +243,18 @@ export class DialogManager {
 				"poweroff-button"
 			)
 		);
+
+		if (this._settings.get_boolean("enable-hibernate")) {
+			box.add_child(
+				createButton(
+					"Hibernate",
+					this._iconMap["Hibernate"],
+					this._powerActions.hibernate.bind(this._powerActions),
+					"hibernate-button"
+				)
+			);
+		}
+
 		box.add_child(
 			createButton(
 				"Log Out",
@@ -236,9 +266,11 @@ export class DialogManager {
 	}
 
 	_renderPillView(box) {
-		const createPill = (labelText, iconName, action) => {
+		const createPill = (labelText, iconName, action, styleClass) => {
+			const isFullWidth = styleClass && styleClass.includes("pill-button-full");
+
 			const button = new St.Button({
-				style_class: "pill-button",
+				style_class: `pill-button ${styleClass || ""}`,
 				can_focus: true,
 				x_expand: true,
 			});
@@ -262,12 +294,14 @@ export class DialogManager {
 				y_expand: true,
 				style_class: "pill-icon",
 			});
+			this._rotateIcon(icon, labelText);
 			iconContainer.add_child(icon);
 			pillBox.add_child(iconContainer);
 
 			const label = new St.Label({
 				text: labelText,
 				y_align: Clutter.ActorAlign.CENTER,
+				x_align: isFullWidth ? Clutter.ActorAlign.CENTER : Clutter.ActorAlign.START,
 				x_expand: true,
 				style_class: "pill-label",
 			});
@@ -305,8 +339,8 @@ export class DialogManager {
 				this._powerActions.suspend.bind(this._powerActions))
 		);
 		firstRow.add_child(
-			createPill("Restart", this._iconMap["Restart"],
-				this._powerActions.reboot.bind(this._powerActions))
+			createPill("Lock", this._iconMap["Lock"],
+				this._powerActions.lock.bind(this._powerActions))
 		);
 
 		secondRow.add_child(
@@ -314,12 +348,46 @@ export class DialogManager {
 				this._powerActions.powerOff.bind(this._powerActions))
 		);
 		secondRow.add_child(
-			createPill("Log Out", this._iconMap["Log Out"],
-				this._powerActions.logout.bind(this._powerActions))
+			createPill("Restart", this._iconMap["Restart"],
+				this._powerActions.reboot.bind(this._powerActions))
 		);
 
 		gridContainer.add_child(firstRow);
 		gridContainer.add_child(secondRow);
+
+		const hibernateEnabled = this._settings.get_boolean("enable-hibernate");
+
+		if (hibernateEnabled) {
+			const thirdRow = new St.BoxLayout({
+				style: "spacing: 8px;",
+				x_expand: true,
+				can_focus: false,
+			});
+
+			thirdRow.add_child(
+				createPill("Hibernate", this._iconMap["Hibernate"],
+					this._powerActions.hibernate.bind(this._powerActions))
+			);
+			thirdRow.add_child(
+				createPill("Log Out", this._iconMap["Log Out"],
+					this._powerActions.logout.bind(this._powerActions))
+			);
+			gridContainer.add_child(thirdRow);
+		} else {
+			const logoutRow = new St.BoxLayout({
+				style: "spacing: 8px;",
+				x_expand: true,
+				can_focus: false,
+			});
+
+			logoutRow.add_child(
+				createPill("Log Out", this._iconMap["Log Out"],
+					this._powerActions.logout.bind(this._powerActions),
+					"pill-button-full")
+			);
+			gridContainer.add_child(logoutRow);
+		}
+
 		box.add_child(gridContainer);
 	}
 
@@ -356,15 +424,15 @@ export class DialogManager {
 						y_align: Clutter.ActorAlign.CENTER,
 					});
 
-					tileBox.add_child(
-						new St.Icon({
-							icon_name: iconName,
-							icon_size: 30,
-							x_align: Clutter.ActorAlign.CENTER,
-							y_align: Clutter.ActorAlign.CENTER,
-							style_class: "system-status-icon",
-						})
-					);
+					const iconsOnlyIcon = new St.Icon({
+						icon_name: iconName,
+						icon_size: 30,
+						x_align: Clutter.ActorAlign.CENTER,
+						y_align: Clutter.ActorAlign.CENTER,
+						style_class: "system-status-icon",
+					});
+					this._rotateIcon(iconsOnlyIcon, labelText);
+					tileBox.add_child(iconsOnlyIcon);
 					tile.set_child(tileBox);
 					break;
 
@@ -390,38 +458,76 @@ export class DialogManager {
 				default:
 					tileBox = new St.BoxLayout();
 
-					const labelContainer = new St.BoxLayout();
+					const isFullWidth = styleClass && styleClass.includes("logout-tile-full");
 
-					const powerLabel = new St.Label({
-						text: labelText,
-						style_class: "tile-label",
-					});
-					labelContainer.add_child(powerLabel);
-					tileBox.add_child(labelContainer);
+					if (isFullWidth) {
+						const labelContainer = new St.BoxLayout();
 
-					const iconContainer = new St.BoxLayout({
-						style_class: "power-option-icon-container-tile",
-						width: 142,
-						height: 40,
-						x_align: Clutter.ActorAlign.CENTER,
-						y_align: Clutter.ActorAlign.CENTER,
-					});
-					const icon = new St.Icon({
-						icon_name: iconName,
-						icon_size: 24,
-						y_align: Clutter.ActorAlign.CENTER,
-						x_align: Clutter.ActorAlign.CENTER,
-						x_expand: true,
-						y_expand: true,
-						style_class: "power-option-icon",
-					});
-					iconContainer.add_child(icon);
+						const powerLabel = new St.Label({
+							text: labelText,
+							style_class: "tile-label",
+						});
+						labelContainer.add_child(powerLabel);
+						tileBox.add_child(labelContainer);
 
-					tile.set_child(tileBox);
-					tile.add_child(labelContainer);
-					tile.add_child(iconContainer);
-					iconContainer.x = 2;
-					iconContainer.y = 2;
+						const iconContainer = new St.BoxLayout({
+							style_class: "power-option-icon-container-tile-full",
+							height: 40,
+							x_align: Clutter.ActorAlign.CENTER,
+							y_align: Clutter.ActorAlign.CENTER,
+						});
+						const icon = new St.Icon({
+							icon_name: iconName,
+							icon_size: 24,
+							y_align: Clutter.ActorAlign.CENTER,
+							x_align: Clutter.ActorAlign.CENTER,
+							x_expand: true,
+							y_expand: true,
+							style_class: "power-option-icon",
+						});
+						this._rotateIcon(icon, labelText);
+						iconContainer.add_child(icon);
+
+						tile.set_child(tileBox);
+						tile.add_child(labelContainer);
+						tile.add_child(iconContainer);
+						iconContainer.x = 2;
+						iconContainer.y = 2;
+					} else {
+						const labelContainer = new St.BoxLayout();
+
+						const powerLabel = new St.Label({
+							text: labelText,
+							style_class: "tile-label",
+						});
+						labelContainer.add_child(powerLabel);
+						tileBox.add_child(labelContainer);
+
+						const iconContainer = new St.BoxLayout({
+							style_class: "power-option-icon-container-tile",
+							width: 142,
+							height: 40,
+							x_align: Clutter.ActorAlign.CENTER,
+							y_align: Clutter.ActorAlign.CENTER,
+						});
+						const icon = new St.Icon({
+							icon_name: iconName,
+							icon_size: 24,
+							y_align: Clutter.ActorAlign.CENTER,
+							x_align: Clutter.ActorAlign.CENTER,
+							x_expand: true,
+							y_expand: true,
+							style_class: "power-option-icon",
+						});
+						this._rotateIcon(icon, labelText);
+						iconContainer.add_child(icon);
+
+						tile.set_child(tileBox);
+						tile.add_child(labelContainer);
+						tile.add_child(iconContainer);
+						iconContainer.x = 2;
+						iconContainer.y = 2;
+					}
 					break;
 			}
 			tile.connect("clicked", () => {
@@ -493,10 +599,10 @@ export class DialogManager {
 		);
 		firstRow.add_child(
 			createTile(
-				"Restart",
-				this._iconMap["Restart"],
-				this._powerActions.reboot.bind(this._powerActions),
-				"restart-tile"
+				"Lock",
+				this._iconMap["Lock"],
+				this._powerActions.lock.bind(this._powerActions),
+				"lock-tile"
 			)
 		);
 
@@ -510,15 +616,59 @@ export class DialogManager {
 		);
 		secondRow.add_child(
 			createTile(
-				"Log Out",
-				this._iconMap["Log Out"],
-				this._powerActions.logout.bind(this._powerActions),
-				"logout-tile"
+				"Restart",
+				this._iconMap["Restart"],
+				this._powerActions.reboot.bind(this._powerActions),
+				"restart-tile"
 			)
 		);
 
 		gridContainer.add_child(firstRow);
 		gridContainer.add_child(secondRow);
+
+		const hibernateEnabled = this._settings.get_boolean("enable-hibernate");
+
+		if (hibernateEnabled) {
+			const thirdRow = new St.BoxLayout({
+				style: "spacing: 8px;",
+				x_expand: true,
+				can_focus: false,
+			});
+
+			thirdRow.add_child(
+				createTile(
+					"Hibernate",
+					this._iconMap["Hibernate"],
+					this._powerActions.hibernate.bind(this._powerActions),
+					"hibernate-tile"
+				)
+			);
+			thirdRow.add_child(
+				createTile(
+					"Log Out",
+					this._iconMap["Log Out"],
+					this._powerActions.logout.bind(this._powerActions),
+					"logout-tile"
+				)
+			);
+			gridContainer.add_child(thirdRow);
+		} else {
+			const logoutRow = new St.BoxLayout({
+				style: "spacing: 8px;",
+				x_expand: true,
+				can_focus: false,
+			});
+
+			logoutRow.add_child(
+				createTile(
+					"Log Out",
+					this._iconMap["Log Out"],
+					this._powerActions.logout.bind(this._powerActions),
+					"logout-tile logout-tile-full"
+				)
+			);
+			gridContainer.add_child(logoutRow);
+		}
 
 		box.add_child(gridContainer);
 	}

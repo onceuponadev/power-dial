@@ -81,6 +81,13 @@ export class IndicatorManager {
 		});
 		menu.addMenuItem(suspendItem);
 
+		const lockItem = new PopupMenu.PopupImageMenuItem(
+			"Lock", "system-lock-screen-symbolic");
+		lockItem.connect("activate", () => {
+			this._powerActions.lock();
+		});
+		menu.addMenuItem(lockItem);
+
 		const restartItem = new PopupMenu.PopupImageMenuItem(
 			"Restart", "system-reboot-symbolic");
 		restartItem.connect("activate", () => {
@@ -94,6 +101,17 @@ export class IndicatorManager {
 			this._powerActions.powerOff();
 		});
 		menu.addMenuItem(powerOffItem);
+
+		if (this._settings.get_boolean("enable-hibernate")) {
+			const hibernateItem = new PopupMenu.PopupImageMenuItem(
+				"Hibernate", "dialog-error-symbolic");
+			hibernateItem._icon.set_pivot_point(0.5, 0.5);
+			hibernateItem._icon.rotation_angle_z = 90;
+			hibernateItem.connect("activate", () => {
+				this._powerActions.hibernate();
+			});
+			menu.addMenuItem(hibernateItem);
+		}
 
 		menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
@@ -180,6 +198,15 @@ export class IndicatorManager {
 			() => this._rebuildIndicator()
 		);
 		this._settingsConnectionIds.push(modeId);
+
+		const hibernateId = this._settings.connect(
+			"changed::enable-hibernate",
+			() => {
+				if (this._indicator && this._indicator.menu)
+					this._populateDropdownMenu();
+			}
+		);
+		this._settingsConnectionIds.push(hibernateId);
 	}
 
 	destroy() {

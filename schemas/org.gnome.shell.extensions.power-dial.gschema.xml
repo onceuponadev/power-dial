@@ -41,5 +41,10 @@
       <summary>Logout confirmation mode</summary>
       <description>Whether to show confirmation before logout. Options: 'confirm' (show dialog) or 'immediate' (execute immediately).</description>
     </key>
+    <key name="enable-hibernate" type="b">
+      <default>false</default>
+      <summary>Enable hibernate option</summary>
+      <description>Whether to show the hibernate option in the power menu. Only enable if your system supports hibernation.</description>
+    </key>
   </schema>
 </schemalist>
