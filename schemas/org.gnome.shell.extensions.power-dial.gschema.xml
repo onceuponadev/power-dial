@@ -16,6 +16,11 @@
       <summary>Show top bar icon</summary>
       <description>Whether to display the Power Dial icon in the top bar</description>
     </key>
+    <key name="dialog-mode" type="s">
+      <default>'overlay'</default>
+      <summary>Dialog mode</summary>
+      <description>How the power menu appears. Options: 'overlay' (centered modal dialog with dim) or 'dropdown' (panel dropdown menu).</description>
+    </key>
     <key name="tiled-display-mode" type="s">
       <default>'label-with-icons'</default>
       <summary>Tiled view display mode</summary>

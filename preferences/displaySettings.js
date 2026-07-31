@@ -91,4 +91,32 @@ export class DisplaySettings {
 
 		return tiledDisplayModeRow;
 	}
+
+	createDialogModeRow(displayGroup) {
+		const dialogModeRow = new Adw.ComboRow({
+			title: "Dialog Mode",
+			subtitle: "How the power menu appears",
+		});
+		displayGroup.add(dialogModeRow);
+
+		const dialogModeModel = new Gtk.StringList();
+		dialogModeModel.append("Overlay");
+		dialogModeModel.append("Dropdown");
+		dialogModeRow.set_model(dialogModeModel);
+
+		const currentDialogMode = this._settings.get_string("dialog-mode");
+		if (currentDialogMode === "overlay") {
+			dialogModeRow.set_selected(0);
+		} else if (currentDialogMode === "dropdown") {
+			dialogModeRow.set_selected(1);
+		}
+
+		dialogModeRow.connect("notify::selected", () => {
+			const selectedIndex = dialogModeRow.get_selected();
+			const selectedMode = selectedIndex === 0 ? "overlay" : "dropdown";
+			this._settings.set_string("dialog-mode", selectedMode);
+		});
+
+		return dialogModeRow;
+	}
 }

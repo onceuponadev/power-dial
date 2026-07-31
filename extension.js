@@ -6,7 +6,13 @@ import { IndicatorManager } from "./dialog/indicatorManager.js";
 
 export default class PowerDialExtension extends Extension {
 	_showPowerMenu() {
-		this._dialogManager._showPowerMenu();
+		const dialogMode = this._settings.get_string("dialog-mode");
+
+		if (dialogMode === "dropdown" && this._indicatorManager.hasDropdownMenu()) {
+			this._indicatorManager.toggleDropdownMenu();
+		} else {
+			this._dialogManager._showPowerMenu();
+		}
 	}
 
 	enable() {
@@ -20,6 +26,7 @@ export default class PowerDialExtension extends Extension {
 		);
 		this._indicatorManager = new IndicatorManager(
 			this._settings,
+			this._powerActions,
 			this._showPowerMenu.bind(this)
 		);
 

@@ -2,20 +2,19 @@ import Clutter from "gi://Clutter";
 import St from "gi://St";
 import * as Main from "resource:///org/gnome/shell/ui/main.js";
 import * as PanelMenu from "resource:///org/gnome/shell/ui/panelMenu.js";
+import * as PopupMenu from "resource:///org/gnome/shell/ui/popupMenu.js";
 
 export class IndicatorManager {
-	constructor(settings, showPowerMenuCallback) {
+	constructor(settings, powerActions, showPowerMenuCallback) {
 		this._settings = settings;
+		this._powerActions = powerActions;
 		this._showPowerMenuCallback = showPowerMenuCallback;
 		this._indicator = null;
-		this._settingsConnectionId = null;
+		this._settingsConnectionIds = [];
 		this._clickGesture = null;
 	}
 
-	_createIndicator() {
-		// dontCreateMenu=true: GNOME 50+ PanelMenu.Button installs a
-		// ClickGesture that only toggles this.menu. We open a ModalDialog,
-		// so skip the menu and handle the click ourselves.
+	_createOverlayIndicator() {
 		this._indicator = new PanelMenu.Button(0.0, "Power Dial", true);
 
 		const icon = new St.Icon({
@@ -25,7 +24,6 @@ export class IndicatorManager {
 		this._indicator.add_child(icon);
 
 		if (Clutter.ClickGesture) {
-			// Same pattern as PanelMenu.Button on GNOME 50: recognize on press.
 			this._clickGesture = new Clutter.ClickGesture();
 			this._clickGesture.set_recognize_on_press(true);
 			this._clickGesture.connect("recognize", () => {
@@ -58,13 +56,62 @@ export class IndicatorManager {
 		Main.panel.addToStatusArea("power-dial", this._indicator, 0, "right");
 	}
 
-	_handleTopBarIconSettingChanged() {
-		const showIcon = this._settings.get_boolean("show-top-bar-icon");
+	_createDropdownIndicator() {
+		this._indicator = new PanelMenu.Button(0.5, "Power Dial", false);
 
-		if (showIcon && !this._indicator) {
-			this._createIndicator();
-		} else if (!showIcon && this._indicator) {
-			this._destroyIndicator();
+		const icon = new St.Icon({
+			icon_name: "system-shutdown-symbolic",
+			style_class: "system-status-icon",
+		});
+		this._indicator.add_child(icon);
+
+		this._populateDropdownMenu();
+
+		Main.panel.addToStatusArea("power-dial", this._indicator, 0, "right");
+	}
+
+	_populateDropdownMenu() {
+		const menu = this._indicator.menu;
+		menu.removeAll();
+
+		const suspendItem = new PopupMenu.PopupImageMenuItem(
+			"Suspend", "media-playback-pause-symbolic");
+		suspendItem.connect("activate", () => {
+			this._powerActions.suspend();
+		});
+		menu.addMenuItem(suspendItem);
+
+		const restartItem = new PopupMenu.PopupImageMenuItem(
+			"Restart", "system-reboot-symbolic");
+		restartItem.connect("activate", () => {
+			this._powerActions.reboot();
+		});
+		menu.addMenuItem(restartItem);
+
+		const powerOffItem = new PopupMenu.PopupImageMenuItem(
+			"Power Off", "system-shutdown-symbolic");
+		powerOffItem.connect("activate", () => {
+			this._powerActions.powerOff();
+		});
+		menu.addMenuItem(powerOffItem);
+
+		menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+		const logoutItem = new PopupMenu.PopupImageMenuItem(
+			"Log Out", "system-log-out-symbolic");
+		logoutItem.connect("activate", () => {
+			this._powerActions.logout();
+		});
+		menu.addMenuItem(logoutItem);
+	}
+
+	_createIndicator() {
+		const dialogMode = this._settings.get_string("dialog-mode");
+
+		if (dialogMode === "dropdown") {
+			this._createDropdownIndicator();
+		} else {
+			this._createOverlayIndicator();
 		}
 	}
 
@@ -76,24 +123,69 @@ export class IndicatorManager {
 		this._clickGesture = null;
 	}
 
-	setup() {
-		if (this._settings.get_boolean("show-top-bar-icon")) {
+	_rebuildIndicator() {
+		const showIcon = this._settings.get_boolean("show-top-bar-icon");
+		this._destroyIndicator();
+		if (showIcon)
 			this._createIndicator();
+	}
+
+	_handleTopBarIconSettingChanged() {
+		const showIcon = this._settings.get_boolean("show-top-bar-icon");
+
+		if (showIcon && !this._indicator) {
+			this._createIndicator();
+		} else if (!showIcon && this._indicator) {
+			this._destroyIndicator();
+		}
+	}
+
+	hasDropdownMenu() {
+		if (!this._indicator || !this._indicator.menu)
+			return false;
+
+		if (Main.overview.visible)
+			return true;
+
+		const panelBox = Main.layoutManager.panelBox;
+		if (!panelBox.visible || panelBox.y < 0)
+			return false;
+
+		const trackedActors = Main.layoutManager._trackedActors;
+		if (trackedActors) {
+			const tracked = trackedActors.find(a => a.actor === panelBox);
+			if (!tracked || !tracked.affectsStruts)
+				return false;
 		}
 
-		this._settingsConnectionId = this._settings.connect(
+		return true;
+	}
+
+	toggleDropdownMenu() {
+		this._indicator.menu.toggle();
+	}
+
+	setup() {
+		if (this._settings.get_boolean("show-top-bar-icon"))
+			this._createIndicator();
+
+		const iconId = this._settings.connect(
 			"changed::show-top-bar-icon",
-			() => {
-				this._handleTopBarIconSettingChanged();
-			}
+			() => this._handleTopBarIconSettingChanged()
 		);
+		this._settingsConnectionIds.push(iconId);
+
+		const modeId = this._settings.connect(
+			"changed::dialog-mode",
+			() => this._rebuildIndicator()
+		);
+		this._settingsConnectionIds.push(modeId);
 	}
 
 	destroy() {
-		if (this._settingsConnectionId) {
-			this._settings.disconnect(this._settingsConnectionId);
-			this._settingsConnectionId = null;
-		}
+		for (const id of this._settingsConnectionIds)
+			this._settings.disconnect(id);
+		this._settingsConnectionIds = [];
 
 		this._destroyIndicator();
 	}
