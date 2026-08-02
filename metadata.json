@@ -3,7 +3,7 @@
 	"name": "Power Dial",
 	"settings-schema": "org.gnome.shell.extensions.power-dial",
 	"shell-version": ["45", "46", "47", "48", "49", "50"],
-	"url": "https://github.com/raodevendrasingh/power-dial",
+	"url": "https://github.com/onceuponadev/power-dial",
 	"uuid": "power-dial@tminus.dev",
 	"version": 10
 }
