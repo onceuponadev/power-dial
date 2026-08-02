@@ -1,5 +1,4 @@
 import St from "gi://St";
-import GLib from "gi://GLib";
 import Clutter from "gi://Clutter";
 import * as ModalDialog from "resource:///org/gnome/shell/ui/modalDialog.js";
 
@@ -16,9 +15,6 @@ export class DialogManager {
 		this._powerActions = powerActions;
 		this._dialog = null;
 		this._isDialogOpen = false;
-		this._tiles = null;
-		this._currentTileIndex = 0;
-		this._focusTimeoutId = null;
 	}
 
 	_iconMap = {
@@ -76,29 +72,6 @@ export class DialogManager {
 
 		this._renderDialogView(box);
 
-		if (
-			this._settings.get_string("view-mode") === "tiled" &&
-			this._tiles &&
-			this._tiles.length > 0
-		) {
-			if (this._focusTimeoutId) {
-				GLib.Source.remove(this._focusTimeoutId);
-				this._focusTimeoutId = null;
-			}
-			this._focusTimeoutId = GLib.timeout_add(
-				GLib.PRIORITY_DEFAULT,
-				50,
-				() => {
-					if (this._tiles?.[0]) {
-						this._tiles[0].grab_key_focus();
-						this._tiles[0].add_style_class_name("focused-tile");
-					}
-					this._focusTimeoutId = null;
-					return GLib.SOURCE_REMOVE;
-				}
-			);
-		}
-
 		dialog.setButtons([
 			{
 				label: "Cancel",
@@ -118,13 +91,6 @@ export class DialogManager {
 		dialog.connect("closed", () => {
 			this._dialog = null;
 			this._isDialogOpen = false;
-			if (this._tiles) {
-				this._tiles.forEach((tile) => {
-					tile.remove_style_class_name("focused-tile");
-				});
-			}
-			this._tiles = null;
-			this._currentTileIndex = 0;
 		});
 
 		// open() returns false when the modal grab cannot be taken; clear the
@@ -244,7 +210,7 @@ export class DialogManager {
 			)
 		);
 
-		if (this._settings.get_boolean("enable-hibernate")) {
+		if (this._settings.get_boolean("enable-hibernate") && this._settings.get_boolean("hibernate-available")) {
 			box.add_child(
 				createButton(
 					"Hibernate",
@@ -355,7 +321,7 @@ export class DialogManager {
 		gridContainer.add_child(firstRow);
 		gridContainer.add_child(secondRow);
 
-		const hibernateEnabled = this._settings.get_boolean("enable-hibernate");
+		const hibernateEnabled = this._settings.get_boolean("enable-hibernate") && this._settings.get_boolean("hibernate-available");
 
 		if (hibernateEnabled) {
 			const thirdRow = new St.BoxLayout({
@@ -392,9 +358,6 @@ export class DialogManager {
 	}
 
 	_renderTiledView(box) {
-		this._tiles = [];
-		this._currentTileIndex = 0;
-
 		const tiledDisplayMode = this._settings.get_string("tiled-display-mode");
 
 		const createTile = (labelText, iconName, action, styleClass) => {
@@ -535,38 +498,6 @@ export class DialogManager {
 				this._dialog?.close();
 			});
 
-			tile.connect("key-press-event", (_actor, event) => {
-				const key = event.get_key_symbol();
-
-				switch (key) {
-					case Clutter.KEY_Left:
-						this._navigateTiles(-1);
-						return Clutter.EVENT_STOP;
-					case Clutter.KEY_Right:
-					case Clutter.KEY_Tab:
-						this._navigateTiles(1);
-						return Clutter.EVENT_STOP;
-					case Clutter.KEY_Up:
-						this._navigateTilesVertical(-1);
-						return Clutter.EVENT_STOP;
-					case Clutter.KEY_Down:
-						this._navigateTilesVertical(1);
-						return Clutter.EVENT_STOP;
-					case Clutter.KEY_ISO_Left_Tab:
-						this._navigateTiles(-1);
-						return Clutter.EVENT_STOP;
-					case Clutter.KEY_Return:
-					case Clutter.KEY_KP_Enter:
-						action();
-						this._dialog?.close();
-						return Clutter.EVENT_STOP;
-				}
-
-				return Clutter.EVENT_PROPAGATE;
-			});
-
-			this._tiles.push(tile);
-
 			return tile;
 		};
 
@@ -626,7 +557,7 @@ export class DialogManager {
 		gridContainer.add_child(firstRow);
 		gridContainer.add_child(secondRow);
 
-		const hibernateEnabled = this._settings.get_boolean("enable-hibernate");
+		const hibernateEnabled = this._settings.get_boolean("enable-hibernate") && this._settings.get_boolean("hibernate-available");
 
 		if (hibernateEnabled) {
 			const thirdRow = new St.BoxLayout({
@@ -673,84 +604,7 @@ export class DialogManager {
 		box.add_child(gridContainer);
 	}
 
-	_navigateTiles(direction) {
-		if (!this._tiles || this._tiles.length === 0) {
-			return;
-		}
-
-		if (this._tiles[this._currentTileIndex]) {
-			this._tiles[this._currentTileIndex].remove_style_class_name(
-				"focused-tile"
-			);
-		}
-
-		let newIndex = this._currentTileIndex + direction;
-
-		if (newIndex < 0) {
-			newIndex = this._tiles.length - 1;
-		} else if (newIndex >= this._tiles.length) {
-			newIndex = 0;
-		}
-
-		this._currentTileIndex = newIndex;
-
-		if (this._tiles[this._currentTileIndex]) {
-			this._tiles[this._currentTileIndex].grab_key_focus();
-			this._tiles[this._currentTileIndex].add_style_class_name(
-				"focused-tile"
-			);
-		}
-	}
-
-	_navigateTilesVertical(direction) {
-		if (!this._tiles || this._tiles.length === 0) {
-			return;
-		}
-
-		const tilesPerRow = 2;
-		const currentRow = Math.floor(this._currentTileIndex / tilesPerRow);
-		const currentCol = this._currentTileIndex % tilesPerRow;
-
-		if (this._tiles[this._currentTileIndex]) {
-			this._tiles[this._currentTileIndex].remove_style_class_name(
-				"focused-tile"
-			);
-		}
-
-		let targetIndex;
-
-		if (direction === -1) {
-			// Up
-			if (currentRow === 0) {
-				targetIndex = 1 * tilesPerRow + currentCol;
-			} else {
-				targetIndex = (currentRow - 1) * tilesPerRow + currentCol;
-			}
-		} else {
-			// Down
-			if (currentRow === 1) {
-				targetIndex = 0 * tilesPerRow + currentCol;
-			} else {
-				targetIndex = (currentRow + 1) * tilesPerRow + currentCol;
-			}
-		}
-
-		this._currentTileIndex = targetIndex;
-
-		if (this._tiles[this._currentTileIndex]) {
-			this._tiles[this._currentTileIndex].grab_key_focus();
-			this._tiles[this._currentTileIndex].add_style_class_name(
-				"focused-tile"
-			);
-		}
-	}
-
 	destroy() {
-		if (this._focusTimeoutId) {
-			GLib.Source.remove(this._focusTimeoutId);
-			this._focusTimeoutId = null;
-		}
-
 		if (this._dialog) {
 			this._dialog.close();
 			this._dialog = null;

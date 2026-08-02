@@ -19,6 +19,10 @@
 	background-color: rgba(255, 255, 255, 0.04);
 }
 
+.power-dial-box .button:focus {
+	box-shadow: inset 0 0 0 2px -st-accent-color;
+}
+
 .power-dial-box .button:active {
 	background-color: rgba(255, 255, 255, 0.1);
 }
@@ -82,9 +86,9 @@
 	background-color: rgba(255, 255, 255, 0.1);
 }
 
-.power-dial-box .tile-icons-only.focused-tile {
+.power-dial-box .tile-icons-only:focus {
 	background-color: rgba(255, 255, 255, 0.12);
-	box-shadow: inset 0 0 0 2px rgba(128, 128, 128, 0.8);
+	box-shadow: inset 0 0 0 2px -st-accent-color;
 }
 
 .power-dial-box .tile-label-only:hover {
@@ -95,9 +99,9 @@
 	background-color: rgba(255, 255, 255, 0.1);
 }
 
-.power-dial-box .tile-label-only.focused-tile {
+.power-dial-box .tile-label-only:focus {
 	background-color: rgba(255, 255, 255, 0.12);
-	box-shadow: inset 0 0 0 2px rgba(128, 128, 128, 0.8);
+	box-shadow: inset 0 0 0 2px -st-accent-color;
 }
 
 .power-dial-box .tile-label-with-icons:hover {
@@ -108,13 +112,9 @@
 	background-color: rgba(255, 255, 255, 0.1);
 }
 
-.power-dial-box .tile-label-with-icons.focused-tile {
+.power-dial-box .tile-label-with-icons:focus {
 	background-color: rgba(255, 255, 255, 0.12);
-	box-shadow: inset 0 0 0 2px rgba(128, 128, 128, 0.8);
-}
-
-.power-dial-box .modal-dialog-button:focus {
-	box-shadow: inset 0 0 0 2px rgba(128, 128, 128, 0.8);
+	box-shadow: inset 0 0 0 2px -st-accent-color;
 }
 
 .power-dial-box .tile-label {
@@ -193,7 +193,7 @@
 }
 
 .power-dial-box .pill-button:focus {
-	box-shadow: inset 0 0 0 2px rgba(128, 128, 128, 0.8);
+	box-shadow: inset 0 0 0 2px -st-accent-color;
 }
 
 .pill-icon-container {
