@@ -101,6 +101,8 @@ export class PowerActions {
 	}
 
 	hibernate() {
+		if (!this._settings.get_boolean("hibernate-available"))
+			return;
 		this._callLogind("Hibernate", true);
 	}
 }

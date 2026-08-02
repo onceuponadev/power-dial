@@ -46,5 +46,10 @@
       <summary>Enable hibernate option</summary>
       <description>Whether to show the hibernate option in the power menu. Only enable if your system supports hibernation.</description>
     </key>
+    <key name="hibernate-available" type="b">
+      <default>false</default>
+      <summary>Hibernate availability</summary>
+      <description>Whether the system supports hibernation. Set automatically by the check button in preferences.</description>
+    </key>
   </schema>
 </schemalist>

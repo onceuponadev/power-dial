@@ -7,6 +7,9 @@ import { PowerOptions } from "./preferences/powerOptions.js";
 
 export default class PowerDialPreferences extends ExtensionPreferences {
 	fillPreferencesWindow(window) {
+		const iconTheme = Gtk.IconTheme.get_for_display(window.get_display());
+		iconTheme.add_search_path(`${this.path}/icons`);
+
 		const page = new Adw.PreferencesPage({
 			title: "General",
 			icon_name: "preferences-system-symbolic",
@@ -30,6 +33,12 @@ export default class PowerDialPreferences extends ExtensionPreferences {
 			description: "Configure confirmation behavior for power actions",
 		});
 		page.add(powerGroup);
+
+		const hibernateGroup = new Adw.PreferencesGroup({
+			title: "Hibernate",
+			description: "Hibernate saves your session to disk and powers off completely. Requires system-level swap configuration.",
+		});
+		page.add(hibernateGroup);
 
 		const settings = this.getSettings();
 
@@ -64,6 +73,6 @@ export default class PowerDialPreferences extends ExtensionPreferences {
 		powerOptions.createRestartConfirmationRow(powerGroup);
 		powerOptions.createPowerOffConfirmationRow(powerGroup);
 		powerOptions.createLogoutConfirmationRow(powerGroup);
-		powerOptions.createHibernateRow(powerGroup);
+		powerOptions.createHibernateRow(hibernateGroup, window);
 	}
 }

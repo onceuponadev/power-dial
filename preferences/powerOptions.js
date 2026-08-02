@@ -1,5 +1,7 @@
 import Adw from "gi://Adw";
 import Gtk from "gi://Gtk";
+import Gio from "gi://Gio";
+import GLib from "gi://GLib";
 
 export class PowerOptions {
 	constructor(settings) {
@@ -90,16 +92,35 @@ export class PowerOptions {
 		return logoutRow;
 	}
 
-	createHibernateRow(powerGroup) {
+	createHibernateRow(hibernateGroup, window) {
+		const available = this._settings.get_boolean("hibernate-available");
+
+		const checkRow = new Adw.ActionRow({
+			title: "Check Hibernate Support",
+			subtitle: available
+				? "Hibernate is supported on this system"
+				: "Verify if your system is configured for hibernation",
+		});
+		hibernateGroup.add(checkRow);
+
+		const checkButton = new Gtk.Button({
+			label: available ? "Re-check" : "Check",
+			valign: Gtk.Align.CENTER,
+			css_classes: ["suggested-action"],
+		});
+		checkRow.add_suffix(checkButton);
+
 		const hibernateRow = new Adw.ActionRow({
 			title: "Enable Hibernate",
-			subtitle: "Show hibernate option (only if your system supports it)",
+			subtitle: "Show hibernate in the power menu",
+			sensitive: available,
 		});
-		powerGroup.add(hibernateRow);
+		hibernateGroup.add(hibernateRow);
 
 		const hibernateToggle = new Gtk.Switch({
 			active: this._settings.get_boolean("enable-hibernate"),
 			valign: Gtk.Align.CENTER,
+			sensitive: available,
 		});
 		hibernateRow.add_suffix(hibernateToggle);
 
@@ -107,7 +128,70 @@ export class PowerOptions {
 			this._settings.set_boolean("enable-hibernate", hibernateToggle.get_active());
 		});
 
-		return hibernateRow;
+		const guideRow = new Adw.ActionRow({
+			title: "Setup Guide",
+			subtitle: "Learn how to enable hibernate on your system",
+			activatable: true,
+		});
+		const guideButton = new Gtk.Button({
+			label: "Open",
+			valign: Gtk.Align.CENTER,
+		});
+		guideRow.add_suffix(guideButton);
+		hibernateGroup.add(guideRow);
+
+		guideButton.connect("clicked", () => {
+			Gio.AppInfo.launch_default_for_uri(
+				"https://github.com/onceuponadev/power-dial/blob/main/HIBERNATE.md",
+				null
+			);
+		});
+
+		checkButton.connect("clicked", () => {
+			Gio.DBus.system.call(
+				"org.freedesktop.login1",
+				"/org/freedesktop/login1",
+				"org.freedesktop.login1.Manager",
+				"CanHibernate",
+				null,
+				new GLib.VariantType("(s)"),
+				Gio.DBusCallFlags.NONE,
+				-1,
+				null,
+				(connection, result) => {
+					let canHibernate = false;
+					let message = "";
+
+					try {
+						const reply = connection.call_finish(result);
+						const value = reply.get_child_value(0).get_string()[0];
+						canHibernate = value === "yes" || value === "challenge";
+						message = canHibernate
+							? "Hibernate is supported on this system"
+							: "Hibernate is not supported on this system";
+					} catch (e) {
+						message = "Unable to check hibernate support";
+					}
+
+					this._settings.set_boolean("hibernate-available", canHibernate);
+
+					if (!canHibernate) {
+						this._settings.set_boolean("enable-hibernate", false);
+						hibernateToggle.set_active(false);
+					}
+
+					hibernateRow.set_sensitive(canHibernate);
+					hibernateToggle.set_sensitive(canHibernate);
+					checkRow.set_subtitle(message);
+					checkButton.set_label(canHibernate ? "Re-check" : "Check");
+
+					const toast = new Adw.Toast({ title: message });
+					window.add_toast(toast);
+				}
+			);
+		});
+
+		return checkRow;
 	}
 }
 

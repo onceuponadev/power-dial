@@ -102,7 +102,7 @@ export class IndicatorManager {
 		});
 		menu.addMenuItem(powerOffItem);
 
-		if (this._settings.get_boolean("enable-hibernate")) {
+		if (this._settings.get_boolean("enable-hibernate") && this._settings.get_boolean("hibernate-available")) {
 			const hibernateItem = new PopupMenu.PopupImageMenuItem(
 				"Hibernate", "dialog-error-symbolic");
 			hibernateItem._icon.set_pivot_point(0.5, 0.5);
@@ -207,6 +207,15 @@ export class IndicatorManager {
 			}
 		);
 		this._settingsConnectionIds.push(hibernateId);
+
+		const hibernateAvailId = this._settings.connect(
+			"changed::hibernate-available",
+			() => {
+				if (this._indicator && this._indicator.menu)
+					this._populateDropdownMenu();
+			}
+		);
+		this._settingsConnectionIds.push(hibernateAvailId);
 	}
 
 	destroy() {
